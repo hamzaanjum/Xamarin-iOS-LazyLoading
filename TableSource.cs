@@ -1,4 +1,7 @@
 ﻿using System;
+using Foundation;
+using UIKit;
+using System.Threading.Tasks;
 
 namespace Lazy
 {
