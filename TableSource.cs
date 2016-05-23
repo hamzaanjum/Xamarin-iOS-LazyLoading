@@ -6,42 +6,34 @@ namespace Lazy
 	{
 		public TableSource ()
 		{
-
-
-			DownloadTask = Task.Factory.StartNew (() => { });
 		}
-	
-		Task DownloadTask { get; set; }
-
-
-
-
-		void BeginDownloadingImage (string ImageUrl, NSIndexPath indexPath, UITableView tableView)
+		
+		async void BeginDownloadingImage (string ImageUrl, NSIndexPath indexPath, UITableView tableView)
 		{
-			byte[] data = null;
+			var cell = tableView.CellAt(indexPath);
 
-			UIImage returnImage = null;
-			DownloadTask = DownloadTask.ContinueWith (prevTask => {
-				try {
-					UIApplication.SharedApplication.NetworkActivityIndicatorVisible = true;
-					using (var c = new GzipWebClient ())
-						data = c.DownloadData (ImageUrl);
-				} finally {
-					UIApplication.SharedApplication.NetworkActivityIndicatorVisible = false;
-				}
-			});
-
-			DownloadTask = DownloadTask.ContinueWith (t => {
-				returnImage = UIImage.LoadFromData (NSData.FromArray (data));
-
-
-				var cell =tableView.CellAt(indexPath);
-
-				if (cell != null)
+			if (cell != null)
+			{
+				cell.ImageView.Image = UIImage.FromBundle("TemporaryImageFromBundle"); // just to show something as a placeholder while the actual image is being downloaded
+				var returnImage = await LoadImage(ImageUrl);
+				if (returnImage != null)
 					cell.ImageView.Image = returnImage;
-
-				//The Download task
-			}, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.FromCurrentSynchronizationContext ());	
+			}
+		}
+		
+		async Task<UIImage> LoadImage(string url)
+		{
+			return await Task.Run(() =>
+			{
+				UIImage img = null;
+				try
+				{
+					var data = new System.Net.WebClient().DownloadData(url);
+					img = UIImage.LoadFromData(NSData.FromArray(data));
+				}
+				catch { img = null; }
+				return img;
+			});
 		}
 	}
 }
